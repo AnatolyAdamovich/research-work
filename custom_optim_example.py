@@ -53,6 +53,7 @@ class CustomOptimizer(Optimizer):
                 state['step'] += 1
 
                 if params_len != batch_len:
+                    # 1st case
                     k = batch_len // params_len
                     X_batch_patches = X_batch.reshape(k, params_len, *list(X_batch.shape[1:]))
                     y_batch_patches = y_batch.reshape(k, params_len, *list(y_batch.shape[1:]))
@@ -70,6 +71,7 @@ class CustomOptimizer(Optimizer):
                     with torch.no_grad():
                         p += torch.mean(estimates, dim=0).reshape(len(p), -1)
                 else:
+                    # 2nd case
                     det = torch.det(X_batch)
                     inv = torch.linalg.inv(X_batch)
                     adj = det * inv
@@ -77,4 +79,6 @@ class CustomOptimizer(Optimizer):
                     with torch.no_grad():
                         p += step_size * (adj @ y_batch - det * p)
 
-                return loss
+                # the next layer require another size of input tensor
+                X_batch = X_batch @ p.reshape(params_len, -1)
+        return loss
