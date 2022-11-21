@@ -63,10 +63,12 @@ class CustomOptimizer(Optimizer):
                         inv = torch.linalg.inv(X_batch_patches[i])
                         adj = det * inv
                         step_size = (lr * det) / (1 + lr * det**2)
-                        params_estimation = step_size * (adj @ y_batch_patches[i] - det * p)
+
+                        params_estimation = step_size * (adj @ y_batch_patches[i] - det * p.reshape(params_len, -1))
                         estimates.append(params_estimation)
+                    estimates = torch.stack(estimates)
                     with torch.no_grad():
-                        p += torch.mean(torch.tensor(estimates))
+                        p += torch.mean(estimates, dim=0).reshape(len(p), -1)
                 else:
                     det = torch.det(X_batch)
                     inv = torch.linalg.inv(X_batch)
