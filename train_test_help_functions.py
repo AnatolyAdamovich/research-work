@@ -2,7 +2,7 @@ import torch
 
 
 def training_model(model, optimizer_fn, loss_fn, metric_fn,
-                   data_train, data_test, input_features=10,
+                   data_train, data_test,
                    learning_rate=1e-3, current_device="cpu",
                    epochs=None, max_epochs=1e4, min_score=0.95,
                    valid_period=5, printed=False,
@@ -10,12 +10,11 @@ def training_model(model, optimizer_fn, loss_fn, metric_fn,
     """Train model
     Parameters:
         model (torch.nn.Module object): neural network model
-        optimizer_fn (function): optimizer to update parameters
+        optimizer_fn (type): optimizer type (e.g. optim.SGD) or optimizer itself
         loss_fn (function): loss function to measure model error
         metric_fn (function): function to evaluate model accuracy
         data_train (torch.utils.data.DataLoader): train dataloader
         data_test (torch.utils.data.DataLoader): test dataloader
-        input_features (int): how many features our data has
         learning_rate (float): speed for optimization method
         current_device (str): current available device (cuda or cpu)
         epochs (int): the number of epochs (for training phase)
@@ -26,8 +25,11 @@ def training_model(model, optimizer_fn, loss_fn, metric_fn,
         with_addition (bool): do we use loss function with adj(X) or not (see 'new_loss.png' file)
     """
     model = model.to(current_device)
-    optimizer = optimizer_fn(params=model.parameters(),
-                             lr=learning_rate)
+    if type(optimizer_fn) == type:
+        optimizer = optimizer_fn(params=model.parameters(),
+                                 lr=learning_rate)
+    else:
+        optimizer = optimizer_fn
     if epochs:
         for epoch in range(1, epochs+1):
             train_epoch(model, optimizer, loss_fn, metric_fn, data_train, current_device, with_addition)
