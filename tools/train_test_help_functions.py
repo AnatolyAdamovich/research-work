@@ -49,6 +49,7 @@ def training_model(model, optimizer_fn, loss_fn, metric_fn,
 
                 if printed:
                     print(f'epoch {epoch}: loss = {loss:.3f} and score = {metric:.3f}')
+        return loss_train_array, loss_test_array, score_test_array
 
     else:
         metric = 0.0
@@ -66,7 +67,7 @@ def training_model(model, optimizer_fn, loss_fn, metric_fn,
                 if printed:
                     print(f'epoch {epoch+1}: loss = {loss:.3f} and score = {metric:.3f}')
             epoch += 1
-        return epoch, metric
+        return epoch, loss_train_array, loss_test_array, score_test_array
 
 
 def train_epoch(model, optimizer, loss_fn, metric_fn, data_train, current_device="cpu", with_addition=False, new_optim=False):

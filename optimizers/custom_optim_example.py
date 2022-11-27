@@ -13,6 +13,9 @@
 4. zero_grad method: set all gradients equal to zero
 
 5. step method - it is unique for all optimizers
+
+##########################################################
+This script contains custom optimizer which use DREM operator to update parameters (beta-version of optimizer)
 """
 import torch
 from torch.optim import Optimizer
@@ -80,33 +83,4 @@ class CustomOptimizer(Optimizer):
 
                 # the next layer require another size of input tensor
                 X_batch = X_batch @ p.reshape(params_len, -1)
-        return loss
-
-
-class DREMOptimizer(Optimizer):
-    def __init__(self, params, lr):
-        if lr < 0.0:
-            raise ValueError(f"Invalid learning rate: {lr} - should be >= 0.0")
-        defaults = {"lr": lr}
-        super(DREMOptimizer, self).__init__(params, defaults)
-
-    @torch.no_grad()
-    def step(self, determinant_X_batch, closure=None):
-        loss = None
-        if closure is not None:
-            with torch.enable_grad():
-                loss = closure()
-        for group in self.param_groups:
-            lr = group["lr"]
-
-            for p in group["params"]:
-                if p.grad is None:
-                    continue
-                gradient = p.grad.data
-                state = self.state[p]
-
-                state["step"] = state.get("step", 0) + 1
-                gradient.div_(1 + lr * determinant_X_batch**2)
-                p.data.add_(gradient, alpha=-lr)
-
         return loss

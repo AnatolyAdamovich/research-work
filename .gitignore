@@ -153,8 +153,4 @@ dmypy.json
 cython_debug/
 
 data/
-/.idea/vcs.xml
-/.idea/research.iml
-/.idea/misc.xml
-/.idea/modules.xml
-/.idea/inspectionProfiles/profiles_settings.xml
+.idea/
