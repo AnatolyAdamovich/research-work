@@ -46,7 +46,7 @@ def training_model(model, optimizer_fn, loss_fn, metric_fn,
             loss, metric = validation_epoch(model, loss_fn, metric_fn, data_test, current_device)
             loss_test_array.append(loss)
             score_test_array.append(metric)
-            if epoch % valid_period == 0 and printed:
+            if (epoch % valid_period == 0) and printed:
                 print(f'epoch {epoch}/{epochs}: loss = {loss:.3f} and score = {metric:.3f}')
         return loss_train_array, loss_test_array, score_test_array
 
@@ -64,7 +64,7 @@ def training_model(model, optimizer_fn, loss_fn, metric_fn,
             loss_test_array.append(loss)
             score_test_array.append(metric)
 
-            if epoch % valid_period == 0 and printed:
+            if (epoch % valid_period == 0) and printed:
                 print(f'epoch {epoch}: loss = {loss:.3f} and score = {metric:.3f}')
             epoch += 1
 
@@ -157,12 +157,25 @@ def _classic_phase(model, optimizer, loss_fn, X_batch, y_batch, mean_loss_epoch,
 
     # loss computation
     if with_addition:
-        # if we use adjoin matrix
+        # use adjoin matrix
         # (functionality for new optimizer, but can also be used with classic optimizers)
         determinant = torch.det(X_batch)
         inverse_batch = torch.linalg.inv(X_batch)
         adjoin = determinant * inverse_batch
         loss1 = loss_fn(adjoin @ predicted, adjoin @ y_batch)
+
+        # if len(X_batch) == n_feature:
+        #     determinant = torch.det(X_batch)
+        #     inverse_batch = torch.linalg.inv(X_batch)
+        #     adjoin = determinant * inverse_batch
+        #     loss1 = loss_fn(adjoin @ predicted, adjoin @ y_batch)
+        # else:
+        #     for i in range(0, len(X_batch), n_feature):
+        #         determinant = torch.det(X_batch[i:(i + n_feature), :])
+        #         inverse_batch = torch.linalg.inv(X_batch[i:(i + n_feature), :])
+        #         adjoin = determinant * inverse_batch
+        #         loss1 = loss_fn(adjoin @ predicted[i:(i + n_feature), :], adjoin @ y_batch[i:(i + n_feature), :])
+
     else:
         loss1 = loss_fn(predicted, y_batch)
 
