@@ -22,7 +22,7 @@ from torch.optim import Optimizer
 
 
 class CustomOptimizer(Optimizer):
-    """optimizer uses logic from grad file"""
+    """optimizer that uses logic from grad file"""
     def __init__(self, params, lr=1e-3):
         # parameters validation
         if lr < 0.0:

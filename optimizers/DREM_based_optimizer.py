@@ -1,4 +1,5 @@
-"""This script contains new optimizer implementation
+"""This script contains an implementation of the optimizer
+which is based on the DREM procedure
 More info can be found in the `report` folder
 """
 
