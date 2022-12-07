@@ -18,6 +18,8 @@ class FiniteTimeOptimizer(Optimizer):
 
         if lr < 0.0:
             raise ValueError(f"Invalid learning rate: {lr} - should be >= 0.0")
+        if (n_of_batches <= 0) or type(n_of_batches) != int:
+            raise ValueError(f"Invalid number of batches: {n_of_batches} - should be >= 1 and should have `int` type")
         defaults = {"lr": lr, "number_of_batches": n_of_batches}
 
         super(FiniteTimeOptimizer, self).__init__(params, defaults)
@@ -27,8 +29,8 @@ class FiniteTimeOptimizer(Optimizer):
         """
         single optimization step
         Parameters:
-            det_batch (torch.tensor or float):
-            partition (int): batch's part
+            det_batch (torch.tensor or float): determinant of batch
+            partition (int): batch's part (for the second case, when batch has the size s*n)
             t (int): batch's number (from 1 to self.state['number_of_batches'])
             closure (callable): functionality to recalculate loss function // see torch.optim docs for more
         """
@@ -46,8 +48,11 @@ class FiniteTimeOptimizer(Optimizer):
                     continue
                 gradient = p.grad.data
                 state = self.state[p]
+                if "step" not in state:
+                    state['step'] = 0
+                    state['initialization'] = p
                 if t == n_of_batches:
-                    self._finite_time(state, n_of_batches, lr)
+                    self._finite_time(state, n_of_batches, lr, p)
                 else:
                     self._drem_operator(det_batch, partition, state, lr, gradient, p)
 
@@ -55,10 +60,13 @@ class FiniteTimeOptimizer(Optimizer):
 
     def _drem_operator(self, det_batch, partition, state, lr, gradient, p):
         """Functional API that performs optimizers computations"""
-        state['determinants'] = state.get("determinants", []).append(det_batch)
+        if "determinants" in state:
+            state["determinants"].append(det_batch)
+        else:
+            state["determinants"] = []
         if partition == 0:
             # case 1: batch size == number of input feature (in the 1st layer)
-            state["step"] = state.get("step", 0) + 1
+            state["step"] += state.get("step", 0) + 1
             gradient.div_(1 + lr * (det_batch ** 2))
             p.data.add_(gradient, alpha=-lr)
         else:
@@ -68,9 +76,11 @@ class FiniteTimeOptimizer(Optimizer):
             state["cum_grad"] = state.get("cum_grad", 0.0) + (lr * gradient)
             if partition == 1:
                 mean_cum_grad = state["cum_grad"] / state["part"]
+                state['part'] = 0
+                state['step'] += 1
                 p.data.add_(mean_cum_grad, alpha=-1)
 
-    def _finite_time(self, state, n_of_batches, lr):
+    def _finite_time(self, state, n_of_batches, lr, p):
         x = torch.arange(len(state['determinants']))
         determinant_function = interp1d(x, state['determinants'],
                                         fill_value='extrapolate')
@@ -78,10 +88,12 @@ class FiniteTimeOptimizer(Optimizer):
         def square_det(a):
             return determinant_function(a)**2
 
-        w = quad(func=square_det,
-                 a=0,
-                 b=n_of_batches)
+        integral, error = quad(func=square_det,
+                               a=0,
+                               b=n_of_batches)
 
-        w = torch.exp(-lr * w)
-
+        w = torch.exp(torch.ones_like(p) * (-lr) * integral)
+        # p.sub_(state["initialization"], alpha=w)
+        # p.div_((1 - w))
+        p = (p - state["initialization"] * w) / (1 - w)
 
