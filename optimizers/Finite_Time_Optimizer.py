@@ -10,7 +10,7 @@ More info can be found in the `report` folder
 import torch
 from torch.optim import Optimizer
 from scipy.interpolate import interp1d
-from scipy.integrate import quad
+from scipy.integrate import simpson, trapezoid
 
 
 class FiniteTimeOptimizer(Optimizer):
@@ -25,13 +25,13 @@ class FiniteTimeOptimizer(Optimizer):
         super(FiniteTimeOptimizer, self).__init__(params, defaults)
 
     @torch.no_grad()
-    def step(self, det_batch, partition=0, t=0, closure=None):
+    def step(self, det_batch, partition=0, t=2, closure=None):
         """
         single optimization step
         Parameters:
             det_batch (torch.tensor or float): determinant of batch
             partition (int): batch's part (for the second case, when batch has the size s*n)
-            t (int): batch's number (from 1 to self.state['number_of_batches'])
+            t (int): batch's number (from 1 to self.state['number_of_batches']) / each `t` batches apply finite time
             closure (callable): functionality to recalculate loss function // see torch.optim docs for more
         """
 
@@ -51,8 +51,10 @@ class FiniteTimeOptimizer(Optimizer):
                 if "step" not in state:
                     state['step'] = 0
                     state['initialization'] = p
-                if t == n_of_batches:
-                    self._finite_time(state, n_of_batches, lr, p)
+                if t % n_of_batches == 0:
+                    self._finite_time(state, lr, p)
+                    print('applied finite time optimizer')
+                    self._drem_operator(det_batch, partition, state, lr, gradient, p)
                 else:
                     self._drem_operator(det_batch, partition, state, lr, gradient, p)
 
@@ -63,7 +65,7 @@ class FiniteTimeOptimizer(Optimizer):
         if "determinants" in state:
             state["determinants"].append(det_batch)
         else:
-            state["determinants"] = []
+            state["determinants"] = [det_batch]
         if partition == 0:
             # case 1: batch size == number of input feature (in the 1st layer)
             state["step"] += state.get("step", 0) + 1
@@ -80,20 +82,21 @@ class FiniteTimeOptimizer(Optimizer):
                 state['step'] += 1
                 p.data.add_(mean_cum_grad, alpha=-1)
 
-    def _finite_time(self, state, n_of_batches, lr, p):
-        x = torch.arange(len(state['determinants']))
-        determinant_function = interp1d(x, state['determinants'],
-                                        fill_value='extrapolate')
+    def _finite_time(self, state, lr, p):
+        """Functional API that performs finite-time algorithm computations"""
+        x_range = torch.arange(len(state['determinants']))
+        squared_determinants = torch.tensor(state["determinants"])**2
+        integral = simpson(y=squared_determinants,
+                           x=x_range)
+        # determinant_function = interp1d(x, state['determinants'],
+        #                                 fill_value='extrapolate')
 
-        def square_det(a):
-            return determinant_function(a)**2
-
-        integral, error = quad(func=square_det,
-                               a=0,
-                               b=n_of_batches)
+        # def square_det(a):
+        #     return determinant_function(a)**2
+        #
+        # integral, error = quad(func=square_det,
+        #                        a=0,
+        #                        b=n_of_batches)
 
         w = torch.exp(torch.ones_like(p) * (-lr) * integral)
-        # p.sub_(state["initialization"], alpha=w)
-        # p.div_((1 - w))
         p = (p - state["initialization"] * w) / (1 - w)
-
