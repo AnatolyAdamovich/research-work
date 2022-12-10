@@ -1,27 +1,27 @@
 """
-help functions for training cycle with new DREM - optimizer
+help functions for training cycle with new Finite Time - optimizer
 """
 
 import torch
 from .train_test_help_functions import validation_epoch
 
 
-def drem_opt_training(model,
-                      optimizer_fn,
-                      loss_fn,
-                      metric_fn,
-                      data_train,
-                      data_test,
-                      learning_rate=1e-3,
-                      current_device="cpu",
-                      epochs=None,
-                      max_epochs=1e4,
-                      min_score=0.95,
-                      printed=False):
-    """Train model with DREM optimizer
+def finite_time_opt_training(model,
+                             optimizer_fn,
+                             loss_fn,
+                             metric_fn,
+                             data_train,
+                             data_test,
+                             learning_rate=1e-3,
+                             current_device="cpu",
+                             epochs=None,
+                             max_epochs=1000,
+                             min_score=0.95,
+                             printed=False):
+    """Train model with Finite Time optimizer
     Parameters:
         model (torch.nn.Module object): neural network model
-        optimizer_fn (type): optimizer type (optim.DREMOptimizer) or optimizer itself
+        optimizer_fn (type): optimizer type (optim.FiniteTimeOptimizer) or optimizer itself
         loss_fn (function): loss function to measure model error
         metric_fn (function): function to evaluate model accuracy
         data_train (torch.utils.data.DataLoader): train dataloader
@@ -47,7 +47,7 @@ def drem_opt_training(model,
 
     if epochs:
         for epoch in range(1, epochs+1):
-            mean_loss_epoch = drem_train_epoch(model, optimizer, loss_fn,
+            mean_loss_epoch = ft_train_epoch(model, optimizer, loss_fn,
                                                data_train, n_of_input_feature, current_device)
             loss_train_array.append(mean_loss_epoch)
             # evaluate
@@ -64,7 +64,7 @@ def drem_opt_training(model,
         epoch = 0
         while (mean_metric_test < min_score) and (epoch <= max_epochs):
             # train
-            mean_loss_epoch = drem_train_epoch(model, optimizer, loss_fn, data_train,
+            mean_loss_epoch = ft_train_epoch(model, optimizer, loss_fn, data_train,
                                                n_of_input_feature, current_device)
             loss_train_array.append(mean_loss_epoch)
             # evaluate
@@ -79,18 +79,18 @@ def drem_opt_training(model,
         return epoch, loss_train_array, loss_test_array, score_test_array
 
 
-def drem_train_epoch(model,
-                     optimizer,
-                     loss_fn,
-                     data_train,
-                     n_feature=None,
-                     current_device="cpu"):
+def ft_train_epoch(model,
+                   optimizer,
+                   loss_fn,
+                   data_train,
+                   n_feature=None,
+                   current_device="cpu"):
     """One epoch in train cycle"""
     loss_epoch = 0.0
     model.train()
     if n_feature is None:
         raise ValueError("`n_feature` should be integer when we use new optimizer")
-    for X_batch, y_batch in data_train:
+    for batch_number, (X_batch, y_batch) in enumerate(data_train):
         X_batch, y_batch = X_batch.to(current_device), y_batch.to(current_device)
         # forward pass
         predicted = model(X_batch)
@@ -114,7 +114,7 @@ def drem_train_epoch(model,
             loss.backward()
 
             # parameters update
-            optimizer.step(det_batch=determinant)
+            optimizer.step(det_batch=determinant, t=batch_number+1)
         else:
             # 2nd case: need to cut batch into `s` parts
             s = len_batch // n_feature
@@ -133,7 +133,7 @@ def drem_train_epoch(model,
                 loss.backward(retain_graph=True)
 
                 # parameters update
-                optimizer.step(det_batch=determinant, partition=s)
+                optimizer.step(det_batch=determinant, partition=s, t=batch_number+1)
                 s -= 1
 
     return loss_epoch / len(data_train)
