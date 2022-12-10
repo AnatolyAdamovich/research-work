@@ -53,7 +53,6 @@ class FiniteTimeOptimizer(Optimizer):
                     state['initialization'] = p
                 if t % n_of_batches == 0:
                     self._finite_time(state, lr, p)
-                    print('applied finite time optimizer')
                     self._drem_operator(det_batch, partition, state, lr, gradient, p)
                 else:
                     self._drem_operator(det_batch, partition, state, lr, gradient, p)
