@@ -23,14 +23,15 @@ def plot_results(loss_train, loss_test, score_test):
     plt.subplot(1, 2, 1)
     plt.plot(loss_train, c='r', label='train')
     plt.plot(loss_test, c='b', label='test')
-    plt.title('Loss function')
-    plt.xlabel('epoch')
+    plt.title('Loss function', size=20)
+    plt.xlabel('epochs', size=20)
     plt.legend()
 
     plt.subplot(1, 2, 2)
     plt.plot(score_test)
-    plt.title('Score on test set')
-    plt.xlabel('epoch')
+    plt.title('Score on test set', size=20)
+    plt.xlabel('epochs', size=20)
+
 
 
 # def training_model(model, optimizer_fn, loss_fn, metric_fn,
