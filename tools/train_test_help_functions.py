@@ -23,14 +23,18 @@ def plot_results(loss_train, loss_test, score_test):
     plt.subplot(1, 2, 1)
     plt.plot(loss_train, c='r', label='train')
     plt.plot(loss_test, c='b', label='test')
-    plt.title('Loss function', size=20)
-    plt.xlabel('epochs', size=20)
+    plt.title('Loss function', size=17)
+    plt.xlabel('epochs', size=17)
+    plt.xticks(fontsize=14)
+    plt.yticks(fontsize=14)
     plt.legend()
 
     plt.subplot(1, 2, 2)
     plt.plot(score_test)
-    plt.title('Score on test set', size=20)
-    plt.xlabel('epochs', size=20)
+    plt.title('Score on test set', size=17)
+    plt.xlabel('epochs', size=17)
+    plt.xticks(fontsize=14)
+    plt.yticks(fontsize=14)
 
 
 
