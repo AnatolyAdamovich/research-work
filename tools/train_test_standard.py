@@ -18,7 +18,8 @@ def standard_training(model,
                       max_epochs=1e4,
                       min_score=0.95,
                       printed=False,
-                      new_loss=False):
+                      new_loss=False,
+                      scheduler=None):
     """Train model with standard optimizers
     Parameters:
         model (torch.nn.Module object): neural network model
@@ -50,12 +51,15 @@ def standard_training(model,
 
     if epochs is not None:
         for epoch in range(1, epochs+1):
-            mean_loss_epoch = standard_train_epoch(model, loss_fn, optimizer, data_train, current_device, new_loss)
+            # train
+            mean_loss_epoch = standard_train_epoch(model, loss_fn, optimizer, scheduler, data_train, current_device, new_loss)
             loss_train_array.append(mean_loss_epoch)
+
             # evaluate
             mean_loss_test, mean_metric_test = validation_epoch(model, loss_fn, metric_fn, data_test, current_device)
             loss_test_array.append(mean_loss_test)
             score_test_array.append(mean_metric_test)
+
             if printed:
                 print(f'epoch {epoch}/{epochs}: loss = {mean_loss_test:.3f} and score = {mean_metric_test:.3f}')
         return loss_train_array, loss_test_array, score_test_array
@@ -63,9 +67,9 @@ def standard_training(model,
     else:
         mean_metric_test = 0.0
         epoch = 0
-        while (mean_metric_test < min_score) and (epoch <= max_epochs):
+        while (mean_metric_test <= min_score) and (epoch <= max_epochs):
             # train
-            mean_loss_epoch = standard_train_epoch(model, loss_fn, optimizer, data_train, current_device, new_loss)
+            mean_loss_epoch = standard_train_epoch(model, loss_fn, optimizer, scheduler, data_train, current_device, new_loss)
             loss_train_array.append(mean_loss_epoch)
 
             # evaluate
@@ -83,6 +87,7 @@ def standard_training(model,
 def standard_train_epoch(model,
                          loss_fn,
                          optimizer,
+                         scheduler,
                          data_train,
                          current_device="cpu",
                          new_loss=False):
@@ -111,5 +116,10 @@ def standard_train_epoch(model,
 
         # update model parameters
         optimizer.step()
+
+        # update learning rate
+        if scheduler:
+            scheduler.step()
+
     return loss_epoch / len(data_train)
 

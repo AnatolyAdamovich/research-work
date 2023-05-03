@@ -17,7 +17,8 @@ def drem_opt_training(model,
                       epochs=None,
                       max_epochs=1e4,
                       min_score=0.95,
-                      printed=False):
+                      printed=False,
+                      scheduler=None):
     """Train model with DREM optimizer
     Parameters:
         model (torch.nn.Module object): neural network model
@@ -47,7 +48,7 @@ def drem_opt_training(model,
 
     if epochs:
         for epoch in range(1, epochs+1):
-            mean_loss_epoch = drem_train_epoch(model, optimizer, loss_fn,
+            mean_loss_epoch = drem_train_epoch(model, optimizer, scheduler, loss_fn,
                                                data_train, n_of_input_feature, current_device)
             loss_train_array.append(mean_loss_epoch)
             # evaluate
@@ -64,7 +65,7 @@ def drem_opt_training(model,
         epoch = 0
         while (mean_metric_test < min_score) and (epoch <= max_epochs):
             # train
-            mean_loss_epoch = drem_train_epoch(model, optimizer, loss_fn, data_train,
+            mean_loss_epoch = drem_train_epoch(model, optimizer, scheduler, loss_fn, data_train,
                                                n_of_input_feature, current_device)
             loss_train_array.append(mean_loss_epoch)
             # evaluate
@@ -81,6 +82,7 @@ def drem_opt_training(model,
 
 def drem_train_epoch(model,
                      optimizer,
+                     scheduler,
                      loss_fn,
                      data_train,
                      n_feature=None,
@@ -115,6 +117,10 @@ def drem_train_epoch(model,
 
             # parameters update
             optimizer.step(det_batch=determinant)
+
+            # update learning rate
+            if scheduler:
+                scheduler.step()
         else:
             # 2nd case: need to cut batch into `s` parts
             s = len_batch // n_feature
@@ -135,5 +141,9 @@ def drem_train_epoch(model,
                 # parameters update
                 optimizer.step(det_batch=determinant, partition=s)
                 s -= 1
+
+                # update learning rate
+                if scheduler:
+                    scheduler.step()
 
     return loss_epoch / len(data_train)
