@@ -118,8 +118,8 @@ def standard_train_epoch(model,
         optimizer.step()
 
         # update learning rate
-        if scheduler:
-            scheduler.step()
+    if scheduler:
+        scheduler.step()
 
     return loss_epoch / len(data_train)
 

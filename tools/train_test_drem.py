@@ -118,9 +118,6 @@ def drem_train_epoch(model,
             # parameters update
             optimizer.step(det_batch=determinant)
 
-            # update learning rate
-            if scheduler:
-                scheduler.step()
         else:
             # 2nd case: need to cut batch into `s` parts
             s = len_batch // n_feature
@@ -142,8 +139,8 @@ def drem_train_epoch(model,
                 optimizer.step(det_batch=determinant, partition=s)
                 s -= 1
 
-                # update learning rate
-                if scheduler:
-                    scheduler.step()
+    # update learning rate
+    if scheduler:
+        scheduler.step()
 
     return loss_epoch / len(data_train)

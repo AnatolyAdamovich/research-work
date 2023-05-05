@@ -117,9 +117,6 @@ def ft_train_epoch(model,
 
             # parameters update
             optimizer.step(det_batch=determinant, t=batch_number+1)
-            # update learning rate
-            if scheduler:
-                scheduler.step()
 
         else:
             # 2nd case: need to cut batch into `s` parts
@@ -141,8 +138,9 @@ def ft_train_epoch(model,
                 # parameters update
                 optimizer.step(det_batch=determinant, partition=s, t=batch_number+1)
                 s -= 1
-                # update learning rate
-                if scheduler:
-                    scheduler.step()
+
+    # update learning rate
+    if scheduler:
+        scheduler.step()
 
     return loss_epoch / len(data_train)
