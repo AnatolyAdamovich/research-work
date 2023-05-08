@@ -50,7 +50,7 @@ class FiniteTimeOptimizer(Optimizer):
                 state = self.state[p]
                 if "step" not in state:
                     state['step'] = 0
-                    state['initialization'] = p
+                    state['initialization'] = p.data
                 if t % n_of_batches == 0:
                     self._finite_time(state, lr, p)
                     self._drem_operator(det_batch, partition, state, lr, gradient, p)
@@ -87,15 +87,7 @@ class FiniteTimeOptimizer(Optimizer):
         squared_determinants = torch.tensor(state["determinants"])**2
         integral = simpson(y=squared_determinants,
                            x=x_range)
-        # determinant_function = interp1d(x, state['determinants'],
-        #                                 fill_value='extrapolate')
-
-        # def square_det(a):
-        #     return determinant_function(a)**2
-        #
-        # integral, error = quad(func=square_det,
-        #                        a=0,
-        #                        b=n_of_batches)
 
         w = torch.exp(torch.ones_like(p) * (-lr) * integral)
-        p = (p - state["initialization"] * w) / (1 - w)
+        p.data = (p.data - state["initialization"] * w) / (1 - w)
+        return p
